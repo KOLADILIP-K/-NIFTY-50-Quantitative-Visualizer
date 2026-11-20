@@ -1030,18 +1030,25 @@
     // Initialize & Fetch Dataset
     async function loadData() {
       try {
-        const res = await fetch('/nifty_3yr_data.json');
-        if (!res.ok) throw new Error('Network response not ok');
+        const res = await fetch('./nifty_3yr_data.json');
+        if (!res.ok) throw new Error('Relative fetch not ok');
         MASTER_DATA = await res.json();
       } catch (err) {
-        console.warn('Direct fetch failed, trying /api/data or fallback:', err);
+        console.warn('Relative fetch failed, trying fallback locations:', err);
         try {
-          const res2 = await fetch('/api/data');
+          const res2 = await fetch('nifty_3yr_data.json');
+          if (!res2.ok) throw new Error('nifty_3yr_data.json not ok');
           MASTER_DATA = await res2.json();
         } catch (err2) {
-          console.error('All data loads failed:', err2);
-          document.body.innerHTML = '<div style="padding:40px; text-align:center; color:#ef4444;">Failed to load NIFTY 50 dataset. Please verify server is running.</div>';
-          return;
+          try {
+            const res3 = await fetch('/api/data');
+            if (!res3.ok) throw new Error('/api/data not ok');
+            MASTER_DATA = await res3.json();
+          } catch (err3) {
+            console.error('All data loads failed:', err3);
+            document.body.innerHTML = '<div style="padding:40px; text-align:center; color:#ef4444;">Failed to load NIFTY 50 dataset. Please verify server or data file is present.</div>';
+            return;
+          }
         }
       }
 
