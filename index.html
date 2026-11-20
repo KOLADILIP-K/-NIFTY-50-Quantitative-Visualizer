@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIFTY 50 Quantitative Visualizer — Multi-Timeframe Dow Theory, Williams %R, BRC & Alert Terminal</title>
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #111827;
+      --bg-card-hover: #172033;
+      --bg-card-alt: #0d1322;
+      --border: #1f293d;
+      --border-accent: #2e3d5b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --green: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.14);
+      --green-border: rgba(16, 185, 129, 0.35);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.14);
+      --red-border: rgba(239, 68, 68, 0.35);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.14);
+      --amber-border: rgba(245, 158, 11, 0.35);
+      --blue: #38bdf8;
+      --blue-bg: rgba(56, 189, 248, 0.14);
+      --blue-border: rgba(56, 189, 248, 0.35);
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.14);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    header {
+      background: #090d16;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #10b981, #0284c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: white;
+    }
+    .brand-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .brand-title span {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: block;
+      margin-top: 2px;
+    }
+    .top-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      font-size: 11px;
+    }
+    .stat-chip .lbl { color: var(--text-dim); font-size: 9px; text-transform: uppercase; font-weight: 600; }
+    .stat-chip .val { font-weight: 700; font-size: 13px; margin-top: 1px; }
+
+    /* Nav Tabs */
+    nav.tab-bar {
+      background: #0f1626;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .tab-btn {
+      padding: 13px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+    .tab-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .tab-badge {
+      background: rgba(255,255,255,0.1);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .tab-btn.active .tab-badge {
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Badges & Colors */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .badge.red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+    .badge.amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .badge.blue { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+    .badge.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+
+    /* Section Headers */
+    .section-header {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Blocks Grid for Tab 1 */
+    .blocks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .tf-block-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .tf-block-card:hover { border-color: var(--border-accent); }
+    .tf-block-card.border-green { border-left: 5px solid var(--green); }
+    .tf-block-card.border-red { border-left: 5px solid var(--red); }
+    .tf-block-card.border-amber { border-left: 5px solid var(--amber); }
+
+    .block-header {
+      padding: 16px 20px;
+      background: #0d1424;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .block-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tf-pill {
+      font-size: 14px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #1e293b;
+      color: var(--text-main);
+      letter-spacing: 0.5px;
+    }
+    .block-body-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 20px;
+    }
+    .structure-subcard {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .subcard-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.05);
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-row .key { color: var(--text-muted); }
+    .data-row .val { font-weight: 600; font-family: ui-monospace, monospace; }
+
+    /* Interactive Mini Chart Canvas */
+    .chart-container {
+      margin-top: 12px;
+      background: #080c14;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      height: 240px;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Common Card & Grid */
+    .card-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Progress & Gauges */
+    .progress-bar-bg {
+      background: #1e293b;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 6px;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.4s ease;
+    }
+    .progress-bar-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
+    .progress-bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .progress-bar-fill.amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .progress-bar-fill.blue { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+
+    /* Tables */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+    th {
+      background: #0d1424;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--text-main);
+      font-family: ui-monospace, monospace;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    tr:last-child td { border-bottom: none; }
+
+    /* Alert Controls & Forms */
+    .form-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .form-control {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .form-control:focus { border-color: var(--blue); }
+    .checkbox-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .checkbox-chip {
+      background: #090d16;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .checkbox-chip input { cursor: pointer; }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(2,132,199,0.3); }
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #273549; }
+
+    /* Footer */
+    footer {
+      background: #080c14;
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand-title">
+      <div class="brand-icon">N</div>
+      <div>
+        <h1>NIFTY 50 Quantitative Visualizer</h1>
+        <span>3-Year Multi-Timeframe Dow Theory, Williams %R, BRC Engine & Alert Center</span>
+      </div>
+    </div>
+    <div class="top-stats" id="topStatsBar">
+      <div class="stat-chip">
+        <span class="lbl">Spot Benchmark</span>
+        <span class="val" id="topSpot">25,044.65</span>
+      </div>
+      <div class="stat-chip">
+        <span class="lbl">Primary Dow Trend</span>
+        <span class="val" id="topPrimaryTrend"><span class="badge green">BULLISH</span></span>
+      </div>
+      <div class="stat-chip">
+        <span class="lbl">Trend Confluence</span>
+        <span class="val" id="topConfluence"><span class="badge blue">TRIPLE CONFLUENCE</span></span>
+      </div>
+      <div class="stat-chip">
+        <span class="lbl">Data Window</span>
+        <span class="val">2023-11 to 2026-11 (3 Yr)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tab Bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('tabBlocks')">
+      <span>📊 Dow Market Structure Blocks</span>
+      <span class="tab-badge">1D to 5m</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabWilliams')">
+      <span>📉 Williams %R Analytics</span>
+      <span class="tab-badge">W%R 14</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabSwings')">
+      <span>⚖️ Swings & %R Confluence</span>
+      <span class="tab-badge">Gap Distance</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabBRC')">
+      <span>⚡ BRC Engine & Proximity</span>
+      <span class="tab-badge">1.5x ATR</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabDowTrend')">
+      <span>🏛️ Dow Trend Hierarchy</span>
+      <span class="tab-badge">Pri / Sec / Ter</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabRSI')">
+      <span>📈 RSI Momentum</span>
+      <span class="tab-badge">14-Period</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('tabAlerts')">
+      <span>🔔 Alert Generation Center</span>
+      <span class="tab-badge" id="alertCountBadge">18 Live</span>
+    </button>
+  </nav>
+
+  <!-- Main View Area -->
+  <main>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: DOW MARKET STRUCTURE BLOCKS (1D, 4H, 1H, 30m, 15m, 5m) -->
+    <!-- ============================================================ -->
+    <div id="tabBlocks" class="tab-pane active">
+      <div class="section-header">
+        <div>
+          <h2>Continuous Multi-Timeframe Dow Theory Blocks</h2>
+          <p>Sequential timeframe blocks defining market structure before and after breakout using Charles Dow's theory. Color coded Green/Red based on confirmed trade structure.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <span class="badge green">● Green: Bullish Trade Bias</span>
+          <span class="badge red">● Red: Bearish Trade Bias</span>
+          <span class="badge amber">● Amber: Consolidation</span>
+        </div>
+      </div>
+
+      <div class="blocks-container" id="blocksContainer">
+        <!-- Rendered dynamically by renderBlocks() -->
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: WILLIAMS %R ANALYTICS & VISUALIZATION                 -->
+    <!-- ============================================================ -->
+    <div id="tabWilliams" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Williams %R Momentum & Volatility Oscillator</h2>
+          <p>Tracks institutional momentum exhaustion across all 6 timeframes with standard 14-period lookback. Overbought &ge; -20 | Oversold &le; -80.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-secondary" onclick="exportWprCSV()">Export %R Data Points</button>
+        </div>
+      </div>
+
+      <!-- Timeframe %R Cards -->
+      <div class="card-grid-3" id="wprGaugesGrid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Interactive Multi-TF %R Chart -->
+      <div class="card">
+        <h3>
+          <span>Multi-Timeframe Williams %R Wave Viewer</span>
+          <select id="wprTfSelect" class="form-control" style="width:120px; padding:4px 8px;" onchange="renderWprChart()">
+            <option value="1D">1D (Daily)</option>
+            <option value="4H">4H (4-Hour)</option>
+            <option value="1H" selected>1H (1-Hour)</option>
+            <option value="30m">30m (30-Min)</option>
+            <option value="15m">15m (15-Min)</option>
+            <option value="5m">5m (5-Min)</option>
+          </select>
+        </h3>
+        <div class="chart-container" style="height:280px;">
+          <canvas id="wprCanvas"></canvas>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim);">
+          <span>Overbought Barrier: -20.0 (Upper Red/Amber Band)</span>
+          <span>Momentum Midpoint: -50.0</span>
+          <span>Oversold Barrier: -80.0 (Lower Green Band)</span>
+        </div>
+      </div>
+
+      <!-- %R Data Points Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Timeframe</th>
+              <th>Current Close</th>
+              <th>Williams %R (14)</th>
+              <th>Momentum Zone</th>
+              <th>Swings Evaluated</th>
+              <th>Matched Swings</th>
+              <th>Confluence Rate</th>
+              <th>Avg Gap Distance</th>
+            </tr>
+          </thead>
+          <tbody id="wprTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: SWINGS & WILLIAMS %R CONFLUENCE (HOW FAR IT IS GAP)    -->
+    <!-- ============================================================ -->
+    <div id="tabSwings" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Swings vs. Williams %R Confluence & Gap Distance Tracker</h2>
+          <p>Checks whether price swing pivots (Swing Highs / Swing Lows) coincide with Williams %R extremes. If not matching, measures the exact gap distance (&Delta;%R pts) to quantify momentum divergence.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <span class="badge green">Match: Sw High &ge; -20 | Sw Low &le; -80</span>
+          <span class="badge amber">Gap: Distance to Confirmation</span>
+        </div>
+      </div>
+
+      <div class="card-grid-3" id="swingsSummaryCards">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Timeframe Selector for Swings Table -->
+      <div class="card">
+        <h3>
+          <span>Detailed Swings Confluence Log & Gap Distance</span>
+          <select id="swingsTfSelect" class="form-control" style="width:120px; padding:4px 8px;" onchange="renderSwingsTable()">
+            <option value="1D">1D Timeframe</option>
+            <option value="4H">4H Timeframe</option>
+            <option value="1H" selected>1H Timeframe</option>
+            <option value="30m">30m Timeframe</option>
+            <option value="15m">15m Timeframe</option>
+            <option value="5m">5m Timeframe</option>
+          </select>
+        </h3>
+        <div class="table-container" style="margin-top:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Swing Type</th>
+                <th>Structure Tag</th>
+                <th>Swing Price (pts)</th>
+                <th>Williams %R Value</th>
+                <th>Confluence Status</th>
+                <th>How Far It Is (Gap &Delta;%R)</th>
+                <th>Interpretation</th>
+              </tr>
+            </thead>
+            <tbody id="swingsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: BRC ENGINE & PROXIMITY ('HOW FAR IT IS IF NOT FOUND') -->
+    <!-- ============================================================ -->
+    <div id="tabBRC" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Big Range Candle (BRC) Engine & Proximity Tracker</h2>
+          <p>Identifies statistical volatility expansion candles (&ge; 1.5x ATR14). If a BRC is not found, dynamically calculates how far it is in points and percentage to the expansion trigger.</p>
+        </div>
+      </div>
+
+      <!-- BRC Timeframe Grid -->
+      <div class="card-grid-3" id="brcCardsGrid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- BRC Proximity Comparative Matrix -->
+      <div class="card">
+        <h3>Comparative BRC Status Across All Timeframes</h3>
+        <div class="table-container" style="margin-top:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>Timeframe</th>
+                <th>Current Candle Range</th>
+                <th>14-Period ATR</th>
+                <th>BRC Trigger (1.5x ATR)</th>
+                <th>Relative Range</th>
+                <th>Status</th>
+                <th>How Far It Is (Pts to BRC)</th>
+                <th>Proximity %</th>
+                <th>Bars Since Last BRC</th>
+              </tr>
+            </thead>
+            <tbody id="brcTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: DOW THEORY TREND HIERARCHY (PRI / SEC / TER)          -->
+    <!-- ============================================================ -->
+    <div id="tabDowTrend" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Dow Theory Three-Trend Hierarchy Command Center</h2>
+          <p>Charles Dow's foundational three trends: Primary Trend (The Tide), Secondary Trend (The Waves), and Tertiary Trend (The Ripples).</p>
+        </div>
+        <div id="dowAlignmentBadge"></div>
+      </div>
+
+      <!-- 3 Master Cards for Primary, Secondary, Tertiary -->
+      <div class="card-grid-3" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));">
+        
+        <!-- Primary Trend -->
+        <div class="card" id="primaryTrendCard" style="border-top:4px solid var(--green);">
+          <h3>
+            <span>🌊 1. Primary Trend (The Tide)</span>
+            <span class="badge green" id="primaryBadge">BULLISH</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Macro time horizon spanning months to years, analyzed strictly on <b>1D</b> and <b>4H</b> charts.</p>
+          <div class="structure-subcard">
+            <div class="data-row">
+              <span class="key">Governing Timeframes:</span>
+              <span class="val">1D & 4H</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Dow Phase:</span>
+              <span class="val" id="primaryPhase">Public Participation (Markup)</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Primary Swing High:</span>
+              <span class="val" id="primaryHigh">23,175.25</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Primary Swing Low:</span>
+              <span class="val" id="primaryLow">22,372.00</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Retracement Depth:</span>
+              <span class="val" id="primaryRetracement">Active Expansion</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Dow Golden Zone:</span>
+              <span class="val">33% to 66% Pullback Target</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Trend -->
+        <div class="card" id="secondaryTrendCard" style="border-top:4px solid var(--green);">
+          <h3>
+            <span>🌊 2. Secondary Trend (The Waves)</span>
+            <span class="badge green" id="secondaryBadge">ALIGNED IMPULSE</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Intermediate reactions lasting weeks to months, evaluated on <b>4H</b> and <b>1H</b> charts.</p>
+          <div class="structure-subcard">
+            <div class="data-row">
+              <span class="key">Governing Timeframes:</span>
+              <span class="val">4H & 1H</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Reaction Character:</span>
+              <span class="val" id="secondaryDesc">Aligned with Bullish Primary</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Trade Implication:</span>
+              <span class="val">Trend Continuation / Dip Buying</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Counter-Trend Risk:</span>
+              <span class="val">LOW (Aligned with Primary)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tertiary Trend -->
+        <div class="card" id="tertiaryTrendCard" style="border-top:4px solid var(--green);">
+          <h3>
+            <span>🌊 3. Tertiary Trend (The Ripples)</span>
+            <span class="badge green" id="tertiaryBadge">BULLISH MOMENTUM</span>
+          </h3>
+          <p style="font-size:12px; color:var(--text-muted);">Short-term minor intraday fluctuations lasting hours to days on <b>30m</b>, <b>15m</b>, and <b>5m</b>.</p>
+          <div class="structure-subcard">
+            <div class="data-row">
+              <span class="key">Governing Timeframes:</span>
+              <span class="val">30m, 15m, 5m</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Microstructure Setup:</span>
+              <span class="val" id="tertiaryDesc">Intraday Scalp Long Alignment</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Execution Role:</span>
+              <span class="val">High-Precision Microstructure Entry</span>
+            </div>
+            <div class="data-row">
+              <span class="key">Noise Sensitivity:</span>
+              <span class="val">HIGH (Subject to Session Fills)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dow Theory Strategy Synthesis -->
+      <div class="card">
+        <h3>🏛️ Dow Theory Multi-Timeframe Strategy Matrix</h3>
+        <div class="table-container" style="margin-top:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Timeframes</th>
+                <th>Current Status</th>
+                <th>Dow Principle</th>
+                <th>Institutional Action Rule</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Primary</b></td>
+                <td>1D, 4H</td>
+                <td><span class="badge green">Bullish Uptrend</span></td>
+                <td>The dominant macro direction cannot be manipulated by single entities.</td>
+                <td>Trade exclusively with the Primary trend direction; do not short into major markup.</td>
+              </tr>
+              <tr>
+                <td><b>Secondary</b></td>
+                <td>4H, 1H</td>
+                <td><span class="badge green">Impulse Expansion</span></td>
+                <td>Normal reactions retrace 1/3 to 2/3 of primary advance.</td>
+                <td>Wait for secondary pullbacks into Dow Golden Zone (33%–66%) to enter high-R:R positions.</td>
+              </tr>
+              <tr>
+                <td><b>Tertiary</b></td>
+                <td>30m, 15m, 5m</td>
+                <td><span class="badge green">Aligned Long</span></td>
+                <td>Minor ripples provide tactical entries once primary and secondary are established.</td>
+                <td>Execute on Break of Structure (BOS) and BRC confirmation on 15m/5m aligned with Daily.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 6: RSI MOMENTUM ENGINE                                   -->
+    <!-- ============================================================ -->
+    <div id="tabRSI" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Relative Strength Index (RSI 14) Momentum Engine</h2>
+          <p>Wilder's 14-period RSI across all timeframes. Tracks Overbought (&ge; 70), Oversold (&le; 30), 50 Centerline regime, and swing divergences.</p>
+        </div>
+      </div>
+
+      <div class="card-grid-3" id="rsiCardsGrid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Interactive RSI Chart -->
+      <div class="card">
+        <h3>
+          <span>Multi-Timeframe RSI Oscillator & Divergence Tracker</span>
+          <select id="rsiTfSelect" class="form-control" style="width:120px; padding:4px 8px;" onchange="renderRsiChart()">
+            <option value="1D">1D (Daily)</option>
+            <option value="4H">4H (4-Hour)</option>
+            <option value="1H" selected>1H (1-Hour)</option>
+            <option value="30m">30m (30-Min)</option>
+            <option value="15m">15m (15-Min)</option>
+            <option value="5m">5m (5-Min)</option>
+          </select>
+        </h3>
+        <div class="chart-container" style="height:260px;">
+          <canvas id="rsiCanvas"></canvas>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim);">
+          <span>Overbought Barrier: 70.0 (Upper Red Zone)</span>
+          <span>Centerline Bull/Bear Pivot: 50.0</span>
+          <span>Oversold Barrier: 30.0 (Lower Green Zone)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 7: ALERT GENERATION CENTER (USER-INPUT DRIVEN)           -->
+    <!-- ============================================================ -->
+    <div id="tabAlerts" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>User-Configurable Alert Generation Center</h2>
+          <p>Define custom threshold parameters across Market Structure, Williams %R, BRC Volatility, Dow Trend, and RSI. Test and generate instant alerts dynamically.</p>
+        </div>
+        <div>
+          <button class="btn-primary" onclick="evaluateCustomAlerts()">⚡ Evaluate Alerts With Custom Inputs</button>
+        </div>
+      </div>
+
+      <!-- User Configuration Panel -->
+      <div class="form-panel">
+        <h3 style="font-size:14px; font-weight:700; margin-bottom:4px;">Custom Alert Input Configuration</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Modify any input threshold below and click 'Evaluate Alerts' to test real-time triggers against the dataset.</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Williams %R Overbought (OB)</label>
+            <input type="number" id="cfgWprOb" class="form-control" value="-20.0" step="1.0" min="-50" max="0" />
+            <span style="font-size:10px; color:var(--text-dim);">Default: -20.0 (e.g. -15.0 for extreme)</span>
+          </div>
+
+          <div class="form-group">
+            <label>Williams %R Oversold (OS)</label>
+            <input type="number" id="cfgWprOs" class="form-control" value="-80.0" step="1.0" min="-100" max="-50" />
+            <span style="font-size:10px; color:var(--text-dim);">Default: -80.0 (e.g. -85.0 for deep discount)</span>
+          </div>
+
+          <div class="form-group">
+            <label>Swing %R Gap Threshold (&Delta;%R)</label>
+            <input type="number" id="cfgWprGap" class="form-control" value="15.0" step="1.0" min="5" max="50" />
+            <span style="font-size:10px; color:var(--text-dim);">Alert if swing occurs with %R gap &ge; X pts</span>
+          </div>
+
+          <div class="form-group">
+            <label>BRC ATR Multiple</label>
+            <input type="number" id="cfgBrcMult" class="form-control" value="1.5" step="0.1" min="1.0" max="3.0" />
+            <span style="font-size:10px; color:var(--text-dim);">Default: 1.5x ATR14 threshold</span>
+          </div>
+
+          <div class="form-group">
+            <label>BRC Proximity Alert (%)</label>
+            <input type="number" id="cfgBrcProx" class="form-control" value="75.0" step="5.0" min="50" max="95" />
+            <span style="font-size:10px; color:var(--text-dim);">Alert when candle reaches &ge; X% of BRC</span>
+          </div>
+
+          <div class="form-group">
+            <label>RSI Overbought (OB)</label>
+            <input type="number" id="cfgRsiOb" class="form-control" value="70.0" step="1.0" min="60" max="90" />
+            <span style="font-size:10px; color:var(--text-dim);">Default: 70.0 (e.g. 75.0 or 80.0)</span>
+          </div>
+
+          <div class="form-group">
+            <label>RSI Oversold (OS)</label>
+            <input type="number" id="cfgRsiOs" class="form-control" value="30.0" step="1.0" min="10" max="40" />
+            <span style="font-size:10px; color:var(--text-dim);">Default: 30.0 (e.g. 25.0 or 20.0)</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <label style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Select Timeframes to Monitor</label>
+          <div class="checkbox-group">
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="1D" checked /> 1D (Daily)</label>
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="4H" checked /> 4H (4-Hour)</label>
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="1H" checked /> 1H (1-Hour)</label>
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="30m" checked /> 30m (30-Min)</label>
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="15m" checked /> 15m (15-Min)</label>
+            <label class="checkbox-chip"><input type="checkbox" name="alertTf" value="5m" checked /> 5m (5-Min)</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Generated Alert Feed -->
+      <div class="card">
+        <h3>
+          <span>Triggered Alert Feed (<span id="alertCountDisplay">0</span> Active Triggers)</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-secondary" onclick="exportAlertsCSV()">Export Alerts CSV</button>
+            <button class="btn-secondary" onclick="resetDefaultConfig()">Reset to Defaults</button>
+          </div>
+        </h3>
+        <div class="table-container" style="margin-top:0;">
+          <table>
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Category</th>
+                <th>Timeframe</th>
+                <th>Condition Triggered</th>
+                <th>Measured Value</th>
+                <th>Timestamp</th>
+                <th>Execution Action</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer>
+    NIFTY 50 Quantitative Visualizer Terminal &copy; 2026. Built for institutional multi-timeframe research, Dow Theory structure analysis, Williams %R, BRC volatility, and real-time alert generation.
+  </footer>
+
+  <!-- Master Client Application Logic -->
+  <script>
+    let MASTER_DATA = null;
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      const targetPane = document.getElementById(tabId);
+      if (targetPane) targetPane.classList.add('active');
+      
+      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (btn) btn.classList.add('active');
+
+      if (tabId === 'tabWilliams') renderWprChart();
+      if (tabId === 'tabRSI') renderRsiChart();
+    }
+
+    // Initialize & Fetch Dataset
+    async function loadData() {
+      try {
+        const res = await fetch('/nifty_3yr_data.json');
+        if (!res.ok) throw new Error('Network response not ok');
+        MASTER_DATA = await res.json();
+      } catch (err) {
+        console.warn('Direct fetch failed, trying /api/data or fallback:', err);
+        try {
+          const res2 = await fetch('/api/data');
+          MASTER_DATA = await res2.json();
+        } catch (err2) {
+          console.error('All data loads failed:', err2);
+          document.body.innerHTML = '<div style="padding:40px; text-align:center; color:#ef4444;">Failed to load NIFTY 50 dataset. Please verify server is running.</div>';
+          return;
+        }
+      }
+
+      hydrateUI();
+    }
+
+    // Hydrate all tabs with master data
+    function hydrateUI() {
+      if (!MASTER_DATA) return;
+      const tfs = MASTER_DATA.timeframes;
+      const dowTrends = MASTER_DATA.dow_trends;
+
+      // 1. Top Stats
+      const d1 = tfs['1D'];
+      if (d1) {
+        document.getElementById('topSpot').innerText = d1.current_bar.close.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('topPrimaryTrend').innerHTML = `<span class="badge ${dowTrends.primary.color.toLowerCase()}">${dowTrends.primary.direction}</span>`;
+        document.getElementById('topConfluence').innerHTML = `<span class="badge blue">${dowTrends.alignment.status.replace('_', ' ')}</span>`;
+      }
+
+      // 2. Render Tab 1: Continuous Dow Market Structure Blocks
+      renderBlocks();
+
+      // 3. Render Tab 2: Williams %R
+      renderWilliamsR();
+
+      // 4. Render Tab 3: Swings & %R Confluence
+      renderSwingsConfluence();
+
+      // 5. Render Tab 4: BRC Engine
+      renderBRCEngine();
+
+      // 6. Render Tab 5: Dow Trend Hierarchy
+      renderDowTrends();
+
+      // 7. Render Tab 6: RSI
+      renderRSI();
+
+      // 8. Render Tab 7: Alerts Feed
+      renderAlerts(MASTER_DATA.default_alerts);
+    }
+
+    // ========================================================
+    // TAB 1: CONTINUOUS DOW BLOCKS
+    // ========================================================
+    function renderBlocks() {
+      const container = document.getElementById('blocksContainer');
+      container.innerHTML = '';
+      const order = ['1D', '4H', '1H', '30m', '15m', '5m'];
+
+      order.forEach((tfKey, idx) => {
+        const tf = MASTER_DATA.timeframes[tfKey];
+        if (!tf) return;
+
+        const dow = tf.dow_structure;
+        const bar = tf.current_bar;
+        const pre = dow.pre_breakout;
+        const bo = dow.breakout_event;
+        const post = dow.post_breakout;
+        const colorClass = dow.block_color.toLowerCase();
+
+        const card = document.createElement('div');
+        card.className = `tf-block-card border-${colorClass}`;
+
+        card.innerHTML = `
+          <div class="block-header">
+            <div class="block-title-group">
+              <span class="tf-pill">${tfKey} Block</span>
+              <span class="badge ${colorClass}">${dow.trade_bias}</span>
+              <span style="font-size:12px; font-weight:600; color:var(--text-muted);">${dow.bias_desc}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; font-size:12px;">
+              <span>Spot: <b style="color:var(--text-main);">${bar.close}</b></span>
+              <span>Range: <b>${bar.range} pts</b></span>
+              <span>ATR14: <b>${bar.atr14} pts</b></span>
+              <span class="badge ${colorClass === 'green' ? 'green' : 'red'}">${colorClass === 'green' ? 'LONG BIAS' : 'SHORT BIAS'}</span>
+            </div>
+          </div>
+
+          <div class="block-body-grid">
+            <!-- 1. Market Structure State -->
+            <div class="structure-subcard">
+              <div class="subcard-title">
+                <span>1. Dow Swing Structure</span>
+                <span class="badge blue">Pivots</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Last Swing High:</span>
+                <span class="val">${dow.last_sh ? dow.last_sh.price + ' pts (' + dow.last_sh.tag + ')' : 'None'}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Last Swing Low:</span>
+                <span class="val">${dow.last_sl ? dow.last_sl.price + ' pts (' + dow.last_sl.tag + ')' : 'None'}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Swing High Date:</span>
+                <span class="val">${dow.last_sh ? dow.last_sh.time : '-'}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Swing Low Date:</span>
+                <span class="val">${dow.last_sl ? dow.last_sl.time : '-'}</span>
+              </div>
+            </div>
+
+            <!-- 2. Before Breakout -->
+            <div class="structure-subcard">
+              <div class="subcard-title">
+                <span>2. Before Breakout</span>
+                <span class="badge amber">Pre-Breakout</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Pre-Breakout Phase:</span>
+                <span class="val">${pre.phase}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Consolidation High:</span>
+                <span class="val">${pre.range_high || '-'} pts</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Consolidation Low:</span>
+                <span class="val">${pre.range_low || '-'} pts</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Range Width:</span>
+                <span class="val">${pre.range_width || '-'} pts (${pre.consolidation_bars} bars)</span>
+              </div>
+            </div>
+
+            <!-- 3. Breakout Event & After Breakout -->
+            <div class="structure-subcard">
+              <div class="subcard-title">
+                <span>3. Breakout Event & Post-Structure</span>
+                <span class="badge ${colorClass}">${bo.type === 'NONE' ? 'Holding Range' : bo.type}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Breakout Level:</span>
+                <span class="val">${bo.level || 'No Recent Break'}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Breakout Timestamp:</span>
+                <span class="val">${bo.timestamp || '-'}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Post-Breakout Status:</span>
+                <span class="val" style="color:${post.status === 'RETEST_CONFIRMED' ? 'var(--green)' : 'var(--blue)'};">${post.status}</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Max Excursion:</span>
+                <span class="val" style="color:var(--green); font-weight:700;">+${post.excursion_pts} pts</span>
+              </div>
+              <div class="data-row">
+                <span class="key">Trailing Invalidation:</span>
+                <span class="val" style="color:var(--red);">${post.invalidation_level || '-'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini Candlestick Preview with Swings -->
+          <div style="padding: 0 20px 20px 20px;">
+            <div class="chart-container" style="height:170px;">
+              <canvas id="blockChart_${tfKey}"></canvas>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+        setTimeout(() => renderBlockMiniChart(tfKey, tf), 50 * idx);
+      });
+    }
+
+    // Render Mini Chart for each Dow block
+    function renderBlockMiniChart(tfKey, tf) {
+      const canvas = document.getElementById(`blockChart_${tfKey}`);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const d = tf.chart_data;
+      if (!d || !d.c || d.c.length === 0) return;
+
+      canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = canvas.parentElement.clientWidth;
+      const height = canvas.parentElement.clientHeight;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Slice recent 60 bars for mini chart
+      const count = Math.min(60, d.c.length);
+      const startIdx = d.c.length - count;
+      const subHighs = d.h.slice(startIdx);
+      const subLows = d.l.slice(startIdx);
+      const subCloses = d.c.slice(startIdx);
+      const subOpens = d.o.slice(startIdx);
+
+      const maxP = Math.max(...subHighs);
+      const minP = Math.min(...subLows);
+      const pRange = Math.max(1, maxP - minP);
+
+      const padTop = 15;
+      const padBottom = 20;
+      const usableH = height - padTop - padBottom;
+      const barW = Math.max(2, (width / count) - 3);
+
+      function getY(p) {
+        return padTop + (usableH * (1 - (p - minP) / pRange));
+      }
+
+      // Draw bars
+      for (let i = 0; i < count; i++) {
+        const x = i * (width / count) + 4;
+        const oY = getY(subOpens[i]);
+        const cY = getY(subCloses[i]);
+        const hY = getY(subHighs[i]);
+        const lY = getY(subLows[i]);
+
+        const isUp = subCloses[i] >= subOpens[i];
+        ctx.strokeStyle = isUp ? '#10b981' : '#ef4444';
+        ctx.fillStyle = isUp ? '#10b981' : '#ef4444';
+
+        // Wick
+        ctx.beginPath();
+        ctx.moveTo(x + barW / 2, hY);
+        ctx.lineTo(x + barW / 2, lY);
+        ctx.stroke();
+
+        // Body
+        const topY = Math.min(oY, cY);
+        const bH = Math.max(1, Math.abs(cY - oY));
+        ctx.fillRect(x, topY, barW, bH);
+      }
+
+      // Draw Breakout line if available
+      const bo = tf.dow_structure.breakout_event;
+      if (bo.level && bo.level >= minP && bo.level <= maxP) {
+        const boY = getY(bo.level);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, boY);
+        ctx.lineTo(width, boY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '10px ui-monospace';
+        ctx.fillText(`BOS Level: ${bo.level}`, 10, boY - 4);
+      }
+    }
+
+    // ========================================================
+    // TAB 2: WILLIAMS %R
+    // ========================================================
+    function renderWilliamsR() {
+      const grid = document.getElementById('wprGaugesGrid');
+      grid.innerHTML = '';
+      const tBody = document.getElementById('wprTableBody');
+      tBody.innerHTML = '';
+
+      const tfs = ['1D', '4H', '1H', '30m', '15m', '5m'];
+      tfs.forEach(k => {
+        const tf = MASTER_DATA.timeframes[k];
+        if (!tf) return;
+        const w = tf.williams_r;
+        const bar = tf.current_bar;
+
+        const zoneClass = w.zone === 'OVERBOUGHT' ? 'red' : (w.zone === 'OVERSOLD' ? 'green' : 'blue');
+        const pctFill = Math.min(100, Math.max(0, 100 + w.value)); // -100 to 0 mapped to 0 to 100
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>
+            <span>${k} Williams %R</span>
+            <span class="badge ${zoneClass}">${w.zone}</span>
+          </h3>
+          <div style="font-size:26px; font-weight:800; font-family:ui-monospace;">
+            ${w.value.toFixed(2)}
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill ${zoneClass}" style="width: ${pctFill}%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim);">
+            <span>-100 (Oversold)</span>
+            <span>-50 (Mid)</span>
+            <span>-20 (OB)</span>
+            <span>0</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Confluence Rate:</span>
+            <span class="val">${w.confluence_rate_pct}% (${w.swings_matched}/${w.swings_total} swings)</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Avg Mismatch Gap:</span>
+            <span class="val">${w.avg_gap_distance} pts</span>
+          </div>
+        `;
+        grid.appendChild(card);
+
+        // Table row
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${k}</b></td>
+          <td>${bar.close}</td>
+          <td><b style="color:${w.value >= -20 ? 'var(--amber)' : (w.value <= -80 ? 'var(--green)' : 'var(--blue)')};">${w.value.toFixed(2)}</b></td>
+          <td><span class="badge ${zoneClass}">${w.zone}</span></td>
+          <td>${w.swings_total}</td>
+          <td>${w.swings_matched}</td>
+          <td><b>${w.confluence_rate_pct}%</b></td>
+          <td>${w.avg_gap_distance} pts</td>
+        `;
+        tBody.appendChild(tr);
+      });
+
+      renderWprChart();
+    }
+
+    // Render interactive Williams %R Chart
+    function renderWprChart() {
+      const tfKey = document.getElementById('wprTfSelect').value || '1H';
+      const tf = MASTER_DATA.timeframes[tfKey];
+      if (!tf || !tf.chart_data || !tf.chart_data.wpr) return;
+
+      const canvas = document.getElementById('wprCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = canvas.parentElement.clientWidth;
+      const height = canvas.parentElement.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+
+      const d = tf.chart_data;
+      const count = Math.min(120, d.wpr.length);
+      const subWpr = d.wpr.slice(d.wpr.length - count);
+
+      function getY(val) {
+        // -100 at bottom (height - 15), 0 at top (15)
+        const norm = (val - (-100)) / 100;
+        return (height - 20) - (norm * (height - 40));
+      }
+
+      // Draw OB band (-20 to 0)
+      const obY = getY(-20);
+      const zeroY = getY(0);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+      ctx.fillRect(0, zeroY, width, obY - zeroY);
+
+      // Draw OS band (-100 to -80)
+      const osY = getY(-80);
+      const min100Y = getY(-100);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+      ctx.fillRect(0, osY, width, min100Y - osY);
+
+      // Draw barrier lines
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#ef4444';
+      ctx.beginPath(); ctx.moveTo(0, obY); ctx.lineTo(width, obY); ctx.stroke();
+
+      ctx.strokeStyle = '#10b981';
+      ctx.beginPath(); ctx.moveTo(0, osY); ctx.lineTo(width, osY); ctx.stroke();
+
+      ctx.strokeStyle = '#475569';
+      const midY = getY(-50);
+      ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(width, midY); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw %R Curve
+      ctx.beginPath();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < count; i++) {
+        const x = i * (width / (count - 1));
+        const y = getY(subWpr[i] !== null ? subWpr[i] : -50);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#ef4444'; ctx.font = '10px ui-monospace'; ctx.fillText('-20 OB', width - 45, obY - 4);
+      ctx.fillStyle = '#10b981'; ctx.fillText('-80 OS', width - 45, osY + 12);
+      ctx.fillStyle = '#64748b'; ctx.fillText('-50 Mid', width - 45, midY - 4);
+    }
+
+    // ========================================================
+    // TAB 3: SWINGS & %R CONFLUENCE (HOW FAR IT IS GAP)
+    // ========================================================
+    function renderSwingsConfluence() {
+      const summaryCards = document.getElementById('swingsSummaryCards');
+      summaryCards.innerHTML = '';
+
+      const tfs = ['1D', '4H', '1H', '30m', '15m', '5m'];
+      tfs.forEach(k => {
+        const tf = MASTER_DATA.timeframes[k];
+        if (!tf) return;
+        const w = tf.williams_r;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>
+            <span>${k} Swings Confluence</span>
+            <span class="badge ${w.confluence_rate_pct >= 50 ? 'green' : 'amber'}">${w.confluence_rate_pct}% Match</span>
+          </h3>
+          <div class="data-row">
+            <span class="key">Total Swings Analyzed:</span>
+            <span class="val">${w.swings_total}</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Confirmed Matches:</span>
+            <span class="val" style="color:var(--green);">${w.swings_matched} swings</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Mismatched (Gap):</span>
+            <span class="val" style="color:var(--amber);">${w.swings_mismatched} swings</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Average Gap Distance:</span>
+            <span class="val" style="font-weight:700;">${w.avg_gap_distance} &Delta;%R pts</span>
+          </div>
+        `;
+        summaryCards.appendChild(card);
+      });
+
+      renderSwingsTable();
+    }
+
+    // Render detailed Swings Table
+    function renderSwingsTable() {
+      const tfKey = document.getElementById('swingsTfSelect').value || '1H';
+      const tf = MASTER_DATA.timeframes[tfKey];
+      if (!tf) return;
+      const tBody = document.getElementById('swingsTableBody');
+      tBody.innerHTML = '';
+
+      const swings = tf.swings_feed || [];
+      // Display in reverse chronological order
+      [...swings].reverse().forEach(s => {
+        const isSH = s.type === 'SH';
+        const tr = document.createElement('tr');
+        const gapColor = s.wpr_matched ? 'var(--green)' : 'var(--amber)';
+        const gapText = s.wpr_matched ? '0.00 (PERFECT MATCH)' : `${s.wpr_gap} pts away`;
+
+        tr.innerHTML = `
+          <td>${s.time}</td>
+          <td><span class="badge ${isSH ? 'red' : 'green'}">${s.type}</span></td>
+          <td><b>${s.tag}</b></td>
+          <td>${s.price.toFixed(2)}</td>
+          <td><b style="color:${s.wpr >= -20 ? 'var(--amber)' : (s.wpr <= -80 ? 'var(--green)' : 'var(--blue)')};">${s.wpr !== null ? s.wpr.toFixed(2) : '-'}</b></td>
+          <td><span class="badge ${s.wpr_matched ? 'green' : 'amber'}">${s.wpr_matched ? 'CONFIRMED MATCH' : 'MISMATCH / GAP'}</span></td>
+          <td><b style="color:${gapColor}; font-family:ui-monospace;">${gapText}</b></td>
+          <td style="font-size:11px; color:var(--text-muted);">
+            ${s.wpr_matched ? 
+              (isSH ? 'Swing High coincided with Overbought exhaustion (&ge; -20)' : 'Swing Low coincided with Oversold exhaustion (&le; -80)') :
+              `Pivot formed without momentum confirmation (${s.wpr_gap} pts gap from trigger)`
+            }
+          </td>
+        `;
+        tBody.appendChild(tr);
+      });
+    }
+
+    // ========================================================
+    // TAB 4: BRC ENGINE & PROXIMITY
+    // ========================================================
+    function renderBRCEngine() {
+      const grid = document.getElementById('brcCardsGrid');
+      grid.innerHTML = '';
+      const tBody = document.getElementById('brcTableBody');
+      tBody.innerHTML = '';
+
+      const tfs = ['1D', '4H', '1H', '30m', '15m', '5m'];
+      tfs.forEach(k => {
+        const tf = MASTER_DATA.timeframes[k];
+        if (!tf) return;
+        const brc = tf.brc_engine;
+        const bar = tf.current_bar;
+
+        const isBrc = brc.is_brc;
+        const badgeClass = isBrc ? 'green' : (brc.proximity_pct >= 75 ? 'amber' : 'blue');
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>
+            <span>${k} BRC Engine</span>
+            <span class="badge ${badgeClass}">${isBrc ? 'BRC DETECTED' : 'NORMAL CANDLE'}</span>
+          </h3>
+          <div style="font-size:24px; font-weight:800; font-family:ui-monospace; color:${isBrc ? 'var(--green)' : 'var(--text-main)'};">
+            ${bar.range.toFixed(1)} <span style="font-size:13px; color:var(--text-dim);">/ ${brc.brc_threshold.toFixed(1)} pts</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill ${badgeClass}" style="width: ${brc.proximity_pct}%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:2px;">
+            <span>Proximity Reached: <b>${brc.proximity_pct}%</b></span>
+            <span>How Far: <b style="color:${isBrc ? 'var(--green)' : 'var(--amber)'};">${isBrc ? '0 pts (Triggered)' : brc.pts_to_brc + ' pts away'}</b></span>
+          </div>
+          <div class="data-row">
+            <span class="key">Relative Range:</span>
+            <span class="val">${brc.relative_range.toFixed(2)}x ATR</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Bars Since Last BRC:</span>
+            <span class="val">${brc.bars_since_last_brc} bars (${brc.last_brc_class || 'None'})</span>
+          </div>
+        `;
+        grid.appendChild(card);
+
+        // Table row
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${k}</b></td>
+          <td>${bar.range.toFixed(2)}</td>
+          <td>${bar.atr14.toFixed(2)}</td>
+          <td><b>${brc.brc_threshold.toFixed(2)}</b></td>
+          <td><b>${brc.relative_range.toFixed(2)}x</b></td>
+          <td><span class="badge ${badgeClass}">${isBrc ? brc.classification : 'Normal'}</span></td>
+          <td><b style="color:${isBrc ? 'var(--green)' : 'var(--amber)'};">${isBrc ? 'TRIGGERED (0 pts)' : brc.pts_to_brc.toFixed(2) + ' pts'}</b></td>
+          <td><b>${brc.proximity_pct}%</b></td>
+          <td>${brc.bars_since_last_brc} bars (${brc.last_brc_time || '-'})</td>
+        `;
+        tBody.appendChild(tr);
+      });
+    }
+
+    // ========================================================
+    // TAB 5: DOW THEORY TREND HIERARCHY
+    // ========================================================
+    function renderDowTrends() {
+      const dt = MASTER_DATA.dow_trends;
+      if (!dt) return;
+
+      document.getElementById('primaryBadge').className = `badge ${dt.primary.color.toLowerCase()}`;
+      document.getElementById('primaryBadge').innerText = dt.primary.direction;
+      document.getElementById('primaryPhase').innerText = dt.primary.phase;
+      document.getElementById('primaryHigh').innerText = dt.primary.last_sh ? dt.primary.last_sh.toFixed(2) + ' pts' : '-';
+      document.getElementById('primaryLow').innerText = dt.primary.last_sl ? dt.primary.last_sl.toFixed(2) + ' pts' : '-';
+      document.getElementById('primaryRetracement').innerText = `${dt.primary.retracement_pct}% of Primary Swing Range`;
+
+      document.getElementById('secondaryBadge').className = `badge ${dt.secondary.color.toLowerCase()}`;
+      document.getElementById('secondaryBadge').innerText = dt.secondary.direction;
+      document.getElementById('secondaryDesc').innerText = dt.secondary.description;
+
+      document.getElementById('tertiaryBadge').className = `badge ${dt.tertiary.color.toLowerCase()}`;
+      document.getElementById('tertiaryBadge').innerText = dt.tertiary.direction;
+      document.getElementById('tertiaryDesc').innerText = dt.tertiary.description;
+
+      document.getElementById('dowAlignmentBadge').innerHTML = `
+        <span class="badge ${dt.alignment.status === 'TRIPLE_CONFLUENCE' ? 'green' : 'amber'}" style="font-size:13px; padding:6px 14px;">
+          ${dt.alignment.status.replace('_', ' ')}: ${dt.alignment.recommendation}
+        </span>
+      `;
+    }
+
+    // ========================================================
+    // TAB 6: RSI MOMENTUM
+    // ========================================================
+    function renderRSI() {
+      const grid = document.getElementById('rsiCardsGrid');
+      grid.innerHTML = '';
+      const tfs = ['1D', '4H', '1H', '30m', '15m', '5m'];
+
+      tfs.forEach(k => {
+        const tf = MASTER_DATA.timeframes[k];
+        if (!tf) return;
+        const rsi = tf.rsi_engine;
+        const bar = tf.current_bar;
+
+        const zoneClass = rsi.zone === 'OVERBOUGHT' ? 'red' : (rsi.zone === 'OVERSOLD' ? 'green' : (rsi.value >= 50 ? 'blue' : 'amber'));
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>
+            <span>${k} RSI (14)</span>
+            <span class="badge ${zoneClass}">${rsi.zone}</span>
+          </h3>
+          <div style="font-size:26px; font-weight:800; font-family:ui-monospace;">
+            ${rsi.value.toFixed(2)}
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill ${zoneClass}" style="width: ${rsi.value}%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim);">
+            <span>0</span>
+            <span>30 (OS)</span>
+            <span>50</span>
+            <span>70 (OB)</span>
+            <span>100</span>
+          </div>
+          <div class="data-row">
+            <span class="key">Divergence Signal:</span>
+            <span class="val" style="color:${rsi.divergence !== 'NONE' ? 'var(--amber)' : 'var(--text-muted)'};">${rsi.divergence}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      renderRsiChart();
+    }
+
+    // Render interactive RSI Chart
+    function renderRsiChart() {
+      const tfKey = document.getElementById('rsiTfSelect').value || '1H';
+      const tf = MASTER_DATA.timeframes[tfKey];
+      if (!tf || !tf.chart_data || !tf.chart_data.rsi) return;
+
+      const canvas = document.getElementById('rsiCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = canvas.parentElement.clientWidth;
+      const height = canvas.parentElement.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+
+      const d = tf.chart_data;
+      const count = Math.min(120, d.rsi.length);
+      const subRsi = d.rsi.slice(d.rsi.length - count);
+
+      function getY(val) {
+        // 0 at bottom (height - 15), 100 at top (15)
+        const norm = val / 100;
+        return (height - 20) - (norm * (height - 40));
+      }
+
+      // Draw OB band (70 to 100)
+      const obY = getY(70);
+      const topY = getY(100);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+      ctx.fillRect(0, topY, width, obY - topY);
+
+      // Draw OS band (0 to 30)
+      const osY = getY(30);
+      const botY = getY(0);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+      ctx.fillRect(0, osY, width, botY - osY);
+
+      // Barriers
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#ef4444'; ctx.beginPath(); ctx.moveTo(0, obY); ctx.lineTo(width, obY); ctx.stroke();
+      ctx.strokeStyle = '#10b981'; ctx.beginPath(); ctx.moveTo(0, osY); ctx.lineTo(width, osY); ctx.stroke();
+      ctx.strokeStyle = '#64748b'; const midY = getY(50); ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(width, midY); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // RSI Curve
+      ctx.beginPath();
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < count; i++) {
+        const x = i * (width / (count - 1));
+        const y = getY(subRsi[i] !== null ? subRsi[i] : 50);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#ef4444'; ctx.font = '10px ui-monospace'; ctx.fillText('70 OB', width - 40, obY - 4);
+      ctx.fillStyle = '#10b981'; ctx.fillText('30 OS', width - 40, osY + 12);
+      ctx.fillStyle = '#64748b'; ctx.fillText('50 Mid', width - 40, midY - 4);
+    }
+
+    // ========================================================
+    // TAB 7: ALERT GENERATION CENTER (USER-CONFIGURABLE)
+    // ========================================================
+    function renderAlerts(alertsList) {
+      const tBody = document.getElementById('alertsTableBody');
+      tBody.innerHTML = '';
+      document.getElementById('alertCountBadge').innerText = `${alertsList.length} Live`;
+      document.getElementById('alertCountDisplay').innerText = alertsList.length;
+
+      alertsList.forEach(a => {
+        const tr = document.createElement('tr');
+        const sevClass = a.severity === 'CRITICAL' ? 'red' : (a.severity === 'WARNING' ? 'amber' : 'blue');
+        tr.innerHTML = `
+          <td><span class="badge ${sevClass}">${a.severity}</span></td>
+          <td><b>${a.category}</b></td>
+          <td><span class="tf-pill" style="font-size:11px;">${a.timeframe}</span></td>
+          <td><b>${a.condition}</b></td>
+          <td style="color:var(--text-muted);">${a.value}</td>
+          <td style="color:var(--text-dim);">${a.timestamp}</td>
+          <td style="color:${a.severity === 'CRITICAL' ? 'var(--green)' : 'var(--blue)'}; font-weight:600;">${a.action}</td>
+        `;
+        tBody.appendChild(tr);
+      });
+    }
+
+    // Evaluate custom user thresholds
+    async function evaluateCustomAlerts() {
+      const wprOb = parseFloat(document.getElementById('cfgWprOb').value) || -20.0;
+      const wprOs = parseFloat(document.getElementById('cfgWprOs').value) || -80.0;
+      const wprGap = parseFloat(document.getElementById('cfgWprGap').value) || 15.0;
+      const brcMult = parseFloat(document.getElementById('cfgBrcMult').value) || 1.5;
+      const brcProx = parseFloat(document.getElementById('cfgBrcProx').value) || 75.0;
+      const rsiOb = parseFloat(document.getElementById('cfgRsiOb').value) || 70.0;
+      const rsiOs = parseFloat(document.getElementById('cfgRsiOs').value) || 30.0;
+
+      const checkedTfs = Array.from(document.querySelectorAll('input[name="alertTf"]:checked')).map(el => el.value);
+
+      const payload = {
+        wpr_ob: wprOb,
+        wpr_os: wprOs,
+        wpr_gap_threshold: wprGap,
+        brc_multiple: brcMult,
+        brc_prox_threshold: brcProx,
+        rsi_ob: rsiOb,
+        rsi_os: rsiOs,
+        selected_tfs: checkedTfs
+      };
+
+      try {
+        const res = await fetch('/api/evaluate-alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const result = await res.json();
+          renderAlerts(result.alerts);
+          alert(`Successfully evaluated alerts! Generated ${result.total_alerts} triggers matching custom thresholds.`);
+          return;
+        }
+      } catch (e) {
+        console.warn('API post failed, evaluating client-side:', e);
+      }
+
+      // Client-side evaluation fallback
+      evaluateAlertsClientSide(payload);
+    }
+
+    function evaluateAlertsClientSide(cfg) {
+      const alerts = [];
+      const tfs = cfg.selected_tfs;
+
+      tfs.forEach(tf => {
+        const item = MASTER_DATA.timeframes[tf];
+        if (!item) return;
+        const bar = item.current_bar;
+        const dow = item.dow_structure;
+        const bo = dow.breakout_event;
+
+        if (bo.type !== 'NONE') {
+          alerts.push({
+            id: `BOS_${tf}`,
+            category: 'Market Structure',
+            timeframe: tf,
+            severity: tf === '1D' || tf === '4H' ? 'CRITICAL' : 'WARNING',
+            condition: `${tf} ${bo.type}`,
+            value: `Level: ${bo.level} pts (+${dow.post_breakout.excursion_pts} pts)`,
+            timestamp: bo.timestamp || bar.time,
+            action: 'Execution continuation rule'
+          });
+        }
+
+        if (bar.wpr14 >= cfg.wpr_ob) {
+          alerts.push({
+            id: `WPR_${tf}`,
+            category: 'Williams %R',
+            timeframe: tf,
+            severity: 'WARNING',
+            condition: `${tf} W%R Overbought (>= ${cfg.wpr_ob})`,
+            value: `${bar.wpr14.toFixed(2)} pts`,
+            timestamp: bar.time,
+            action: 'Monitor for swing exhaustion'
+          });
+        } else if (bar.wpr14 <= cfg.wpr_os) {
+          alerts.push({
+            id: `WPR_OS_${tf}`,
+            category: 'Williams %R',
+            timeframe: tf,
+            severity: 'WARNING',
+            condition: `${tf} W%R Oversold (<= ${cfg.wpr_os})`,
+            value: `${bar.wpr14.toFixed(2)} pts`,
+            timestamp: bar.time,
+            action: 'Monitor for swing discount bounce'
+          });
+        }
+
+        // BRC custom
+        const thresh = cfg.brc_multiple * bar.atr14;
+        const prox = Math.min(100, (bar.range / thresh) * 100);
+        if (bar.range >= thresh) {
+          alerts.push({
+            id: `BRC_${tf}`,
+            category: 'BRC Engine',
+            timeframe: tf,
+            severity: 'CRITICAL',
+            condition: `${tf} BRC Triggered (${cfg.brc_multiple}x ATR)`,
+            value: `Range: ${bar.range} pts >= ${thresh.toFixed(1)} pts`,
+            timestamp: bar.time,
+            action: 'High Volatility Expansion'
+          });
+        } else if (prox >= cfg.brc_prox_threshold) {
+          alerts.push({
+            id: `BRC_PROX_${tf}`,
+            category: 'BRC Engine',
+            timeframe: tf,
+            severity: 'WARNING',
+            condition: `${tf} BRC Proximity Reached (>= ${cfg.brc_prox_threshold}%)`,
+            value: `${prox.toFixed(1)}% reached (${(thresh - bar.range).toFixed(1)} pts away)`,
+            timestamp: bar.time,
+            action: 'Approaching expansion threshold'
+          });
+        }
+
+        // RSI custom
+        if (bar.rsi14 >= cfg.rsi_ob) {
+          alerts.push({
+            id: `RSI_${tf}`,
+            category: 'RSI Momentum',
+            timeframe: tf,
+            severity: 'WARNING',
+            condition: `${tf} RSI Overbought (>= ${cfg.rsi_ob})`,
+            value: `RSI: ${bar.rsi14.toFixed(2)}`,
+            timestamp: bar.time,
+            action: 'Overbought alert'
+          });
+        } else if (bar.rsi14 <= cfg.rsi_os) {
+          alerts.push({
+            id: `RSI_OS_${tf}`,
+            category: 'RSI Momentum',
+            timeframe: tf,
+            severity: 'WARNING',
+            condition: `${tf} RSI Oversold (<= ${cfg.rsi_os})`,
+            value: `RSI: ${bar.rsi14.toFixed(2)}`,
+            timestamp: bar.time,
+            action: 'Oversold alert'
+          });
+        }
+      });
+
+      renderAlerts(alerts);
+      alert(`Client-side evaluation complete: ${alerts.length} alerts triggered!`);
+    }
+
+    function resetDefaultConfig() {
+      document.getElementById('cfgWprOb').value = -20.0;
+      document.getElementById('cfgWprOs').value = -80.0;
+      document.getElementById('cfgWprGap').value = 15.0;
+      document.getElementById('cfgBrcMult').value = 1.5;
+      document.getElementById('cfgBrcProx').value = 75.0;
+      document.getElementById('cfgRsiOb').value = 70.0;
+      document.getElementById('cfgRsiOs').value = 30.0;
+      document.querySelectorAll('input[name="alertTf"]').forEach(cb => cb.checked = true);
+      renderAlerts(MASTER_DATA.default_alerts);
+    }
+
+    // CSV Exports
+    function exportAlertsCSV() {
+      const rows = Array.from(document.querySelectorAll('#alertsTableBody tr')).map(tr => 
+        Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/"/g, '""')}"`).join(',')
+      );
+      if (rows.length === 0) return alert('No alerts to export.');
+      const csv = ['Severity,Category,Timeframe,Condition,Value,Timestamp,Action', ...rows].join('\n');
+      downloadFile(csv, 'NIFTY50_Generated_Alerts.csv', 'text/csv');
+    }
+
+    function exportWprCSV() {
+      const rows = Array.from(document.querySelectorAll('#wprTableBody tr')).map(tr => 
+        Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/"/g, '""')}"`).join(',')
+      );
+      const csv = ['Timeframe,Close,Williams %R,Zone,Total Swings,Matched,Confluence Rate,Avg Gap', ...rows].join('\n');
+      downloadFile(csv, 'NIFTY50_Williams_R_Metrics.csv', 'text/csv');
+    }
+
+    function downloadFile(content, fileName, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+    }
+
+    // Run on startup
+    window.addEventListener('DOMContentLoaded', loadData);
+    window.addEventListener('resize', () => {
+      renderWprChart();
+      renderRsiChart();
+    });
+  </script>
+</body>
+</html>

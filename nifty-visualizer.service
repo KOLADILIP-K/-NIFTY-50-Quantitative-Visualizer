@@ -1,0 +1,16 @@
+[Unit]
+Description=NIFTY 50 Quantitative Visualizer Terminal Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/nifty-visualizer
+Environment="PORT=8888"
+Environment="HOST=0.0.0.0"
+ExecStart=/usr/bin/python3 -u server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

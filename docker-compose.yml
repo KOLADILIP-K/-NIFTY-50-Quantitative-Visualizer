@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  nifty-visualizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nifty50_visualizer_app
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - PORT=8888
+      - HOST=0.0.0.0
+    volumes:
+      # Mount data json for zero-rebuild updates
+      - ./nifty_3yr_data.json:/app/nifty_3yr_data.json
